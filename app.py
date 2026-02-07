@@ -49,6 +49,47 @@ OWNERS = ["محمد العثمان","حنان الصحن","الهنوف اللع
 st.title("📊 نظام إدارة مؤشرات قطاع الحرف")
 tab1, tab2 = st.tabs(["➕ إضافة بيانات", "📝 عرض وتعديل وإدارة"])
 
+# ===============================
+# نظام الحماية برمز PIN
+# ===============================
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == "1234":  # ضع الرمز الذي تريده هنا
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # مسح الرمز من الذاكرة للأمان
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # عرض واجهة إدخال الرمز السري لأول مرة
+        st.text_input(
+            "أدخل الرمز السري للدخول إلى النظام", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        return False
+    elif not st.session_state["password_correct"]:
+        # في حال كان الرمز خطأ
+        st.text_input(
+            "الرمز السري خاطئ، حاول مرة أخرى", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.error("😕 الرمز غير صحيح")
+        return False
+    else:
+        # الرمز صحيح
+        return True
+
+# التحقق من الدخول قبل عرض أي شيء
+if not check_password():
+    st.stop()  # يتوقف الكود هنا ولا يعرض التبويبات أو البيانات إلا بعد إدخال الرمز
+
 with tab1:
     st.subheader("إدخال سجل جديد")
     
