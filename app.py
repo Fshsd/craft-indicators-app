@@ -57,7 +57,7 @@ def check_password():
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == "1234":  # ضع الرمز الذي تريده هنا
+        if st.session_state["password"] == "1424":  # ضع الرمز الذي تريده هنا
             st.session_state["password_correct"] = True
             del st.session_state["password"]  # مسح الرمز من الذاكرة للأمان
         else:
