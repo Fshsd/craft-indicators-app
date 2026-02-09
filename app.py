@@ -50,45 +50,48 @@ st.title("📊 نظام إدارة مؤشرات قطاع الحرف")
 tab1, tab2 = st.tabs(["➕ إضافة بيانات", "📝 عرض وتعديل وإدارة"])
 
 # ===============================
-# نظام الحماية برمز PIN
+# نظام الحماية المطور (السيناريو الأول)
 # ===============================
 def check_password():
-    """Returns `True` if the user had the correct password."""
+    if "user_role" not in st.session_state:
+        st.session_state["user_role"] = None
 
     def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == "1424":  # ضع الرمز الذي تريده هنا
+        pwd = st.session_state["password"]
+        if pwd == "1111":
+            st.session_state["user_role"] = "user" # موظف إدخال فقط
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # مسح الرمز من الذاكرة للأمان
+        elif pwd == "2222":
+            st.session_state["user_role"] = "admin" # مدير نظام (كل الصلاحيات)
+            st.session_state["password_correct"] = True
         else:
             st.session_state["password_correct"] = False
+        
+        if "password" in st.session_state:
+            del st.session_state["password"]
 
-    if "password_correct" not in st.session_state:
-        # عرض واجهة إدخال الرمز السري لأول مرة
-        st.text_input(
-            "أدخل الرمز السري للدخول إلى النظام", 
-            type="password", 
-            on_change=password_entered, 
-            key="password"
-        )
+    if not st.session_state.get("password_correct"):
+        st.text_input("أدخل الرمز السري للدخول", type="password", on_change=password_entered, key="password")
+        if st.session_state.get("password_correct") == False:
+            st.error("😕 الرمز غير صحيح")
         return False
-    elif not st.session_state["password_correct"]:
-        # في حال كان الرمز خطأ
-        st.text_input(
-            "الرمز السري خاطئ، حاول مرة أخرى", 
-            type="password", 
-            on_change=password_entered, 
-            key="password"
-        )
-        st.error("😕 الرمز غير صحيح")
-        return False
-    else:
-        # الرمز صحيح
-        return True
+    return True
 
-# التحقق من الدخول قبل عرض أي شيء
 if not check_password():
-    st.stop()  # يتوقف الكود هنا ولا يعرض التبويبات أو البيانات إلا بعد إدخال الرمز
+    st.stop()
+
+# ===============================
+# إدارة التبويبات بناءً على الصلاحية
+# ===============================
+role = st.session_state["user_role"]
+
+if role == "admin":
+    # المدير يرى كل شيء
+    tab1, tab2 = st.tabs(["➕ إضافة بيانات", "📝 عرض وتعديل وإدارة"])
+else:
+    # الموظف يرى صفحة الإضافة فقط (لن يظهر له شريط التبويبات أصلاً)
+    tab1 = st.container() # نستخدم حاوية بدلاً من التبويب لإخفاء الشريط العلوي
+    tab2 = None
 
 with tab1:
     st.subheader("إدخال سجل جديد")
