@@ -136,6 +136,40 @@ with tab1:
         data = get_data()
         st.dataframe(data, use_container_width=True)
 
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == "1122":  # ضع الرمز الذي تريده هنا
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # مسح الرمز من الذاكرة للأمان
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # عرض واجهة إدخال الرمز السري لأول مرة
+        st.text_input(
+            "أدخل الرمز السري للدخول إلى النظام", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        return False
+    elif not st.session_state["password_correct"]:
+        # في حال كان الرمز خطأ
+        st.text_input(
+            "الرمز السري خاطئ، حاول مرة أخرى", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.error("😕 الرمز غير صحيح")
+        return False
+    else:
+        # الرمز صحيح
+        return True
+
 with tab2:
     st.subheader("⚙️ إدارة وتعديل البيانات")
     data_to_edit = get_data()
