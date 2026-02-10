@@ -74,7 +74,7 @@ with tab1:
     st.divider()
 
     # 2. تقسيم الصفحة إلى قسمين (الهامش 1 : الأساس 3)
-    col_main, col_sidebar = st.columns([3, 1])
+    col_main, col_sidebar = st.columns([3, 2])
 
     with col_main:
         st.markdown("### 📝 نموذج الإدخال")
