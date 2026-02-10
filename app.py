@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
+from datetime import datetime, timedelta
 
 # إعدادات الصفحة
 st.set_page_config(page_title="نظام إدارة مؤشرات الحرف", layout="wide")
@@ -37,6 +38,24 @@ FOLLOW_UP_LIST = [
     "شهري","شهري","شهري","شهري","شهري","ربعي","ربعي","ربعي",
     "ربعي","ربعي","ربعي",
 ]
+
+arabic_months = {
+    1: "يناير",
+    2: "فبراير",
+    3: "مارس",
+    4: "أبريل",
+    5: "مايو",
+    6: "يونيو",
+    7: "يوليو",
+    8: "أغسطس",
+    9: "سبتمبر",
+    10: "أكتوبر",
+    11: "نوفمبر",
+    12: "ديسمبر"
+}
+
+date_minus_20 = datetime.today() - timedelta(days=20)
+month_name = arabic_months[date_minus_20.month]
 
 # 2. الربط الصحيح بين اسم المؤشر وطريقة المتابعة
 if len(INDICATORS) == len(FOLLOW_UP_LIST):
@@ -100,6 +119,7 @@ with tab1:
     ind_name = st.selectbox("اسم المؤشر", INDICATORS)
     f_method = FOLLOW_UP_MAPPING.get(ind_name, "غير محدد")
     st.info(f"طريقة المتابعة لهذا المؤشر: **{f_method}**")
+    st.info("الشهر : ", month_name)
 
     with st.form("add_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
