@@ -115,6 +115,44 @@ with tab1:
     
     # الخطوة 1: يختار المستخدم اسمه أولاً
     selected_owner = st.selectbox("اختر اسمك (مالك المؤشر)", OWNERS)
+    # --- نظام التذكير الذكي ---
+current_data = get_data()
+
+# 1. حساب عدد المؤشرات المطلوبة من الشخص
+required_count = len(OWNER_INDICATORS[selected_owner])
+
+# 2. حساب عدد المؤشرات التي قام بتعبئتها لهذا الشهر تحديداً
+if dynamic_column_name in current_data.columns:
+    # نقوم بفلترة البيانات لمالك المؤشر الحالي والتي تحتوي على قيمة (ليست فارغة وليست صفر)
+    completed_count = current_data[
+        (current_data['مالك المؤشر'] == selected_owner) & 
+        (current_data[dynamic_column_name].notna()) & 
+        (current_data[dynamic_column_name] != 0)
+    ].shape[0]
+else:
+    completed_count = 0
+
+# 3. عرض التذكير بناءً على الحالة
+st.markdown(f"### 🔔 حالة الإكمال لشهر {current_month_name}")
+
+if completed_count == 0:
+    st.warning(f"⚠️ يا {selected_owner.split()[0]}، لم تقم بإدخال أي بيانات لهذا الشهر حتى الآن. مطلوب منك {required_count} مؤشرات.")
+elif completed_count < required_count:
+    remaining = required_count - completed_count
+    st.info(f"⚡ إنجاز جيد! لقد أكملت {completed_count} من أصل {required_count}. متبقي لك {remaining} مؤشرات فقط.")
+    # عرض أسماء المؤشرات المتبقية
+    all_assigned = set(OWNER_INDICATORS[selected_owner])
+    if dynamic_column_name in current_data.columns:
+        done_list = set(current_data[(current_data['مالك المؤشر'] == selected_owner) & (current_data[dynamic_column_name].notna())]['اسم المؤشر'])
+    else:
+        done_list = set()
+    
+    missing = all_assigned - done_list
+    with st.expander("رؤية المؤشرات المتبقية عليك"):
+        for m in missing:
+            st.write(f"- {m}")
+else:
+    st.success(f"✅ كفيت ووفيت يا {selected_owner.split()[0]}! لقد أكملت جميع المؤشرات الـ {required_count} المطلوبة منك.")
     
     # الخطوة 2: تظهر المؤشرات الخاصة به فقط
     available_indicators = OWNER_INDICATORS[selected_owner]
