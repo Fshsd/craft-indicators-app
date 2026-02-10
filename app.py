@@ -140,18 +140,18 @@ with tab1:
         data = get_data()
         st.dataframe(data, use_container_width=True)
 
-
-with tab2:
-    st.subheader("⚙️ إدارة وتعديل البيانات")
-    data_to_edit = get_data()
-    edited_df = st.data_editor(data_to_edit, num_rows="dynamic", use_container_width=True, key="editor_tab2")
-    
-    if st.button("💾 حفظ جميع التغييرات النهائية"):
-        with st.spinner('جاري حفظ البيانات وتحديث السحابة...'):
-            conn.update(data=edited_df)
-            
-            # --- السطر السحري لحل مشكلتك ---
-            st.cache_data.clear() # يمسح الذاكرة القديمة ليجبر التطبيق على جلب البيانات الجديدة في كل التبويبات
-            
-            st.success("تم تحديث قاعدة البيانات السحابية! 🚀")
-            st.rerun()
+if role == "admin" and tab2 is not None:
+    with tab2:
+        st.subheader("⚙️ إدارة وتعديل البيانات")
+        data_to_edit = get_data()
+        edited_df = st.data_editor(data_to_edit, num_rows="dynamic", use_container_width=True, key="editor_tab2")
+        
+        if st.button("💾 حفظ جميع التغييرات النهائية"):
+            with st.spinner('جاري حفظ البيانات وتحديث السحابة...'):
+                conn.update(data=edited_df)
+                
+                # --- السطر السحري لحل مشكلتك ---
+                st.cache_data.clear() # يمسح الذاكرة القديمة ليجبر التطبيق على جلب البيانات الجديدة في كل التبويبات
+                
+                st.success("تم تحديث قاعدة البيانات السحابية! 🚀")
+                st.rerun()
