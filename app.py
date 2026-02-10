@@ -95,7 +95,8 @@ with tab1:
                 act_val = st.number_input(f"🔢 {dynamic_column_name}", value=0.0)
             with f_col2:
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.link_button("📂 افتح Google Drive للرفع", "https://drive.google.com/", use_container_width=True)
+                st.link_button("📂 افتح FileOrbis للرفع", "https://cdp.moc.gov.sa/portal/r/l/3f72f52a8b2348d9b6c8b687bb6e4b80", use_container_width=True)
+
                 docs_input = st.text_input("🔗 رابط الوثيقة الداعمة", placeholder="ألصق الرابط هنا...")
             
             if st.form_submit_button("حفظ البيانات في السحابة ✅", use_container_width=True):
