@@ -126,7 +126,6 @@ with tab1:
     required_count = len(required_indicators)
     
     if dynamic_column_name in current_data.columns:
-        # نعتمد على وجود قيمة (حتى لو صفر) لاعتبار المؤشر مكتملاً
         done_list = current_data[
             (current_data['مالك المؤشر'] == selected_owner) & 
             (current_data[dynamic_column_name].notna())
@@ -149,12 +148,12 @@ with tab1:
 
     st.divider()
 
-    # --- نموذج الإدخال (الفورم) ---
+    # --- نموذج الإدخال (الفورم) المنسق ---
     available_indicators = OWNER_INDICATORS[selected_owner]
     ind_name = st.selectbox("اسم المؤشر المسؤول عنه", available_indicators)
     f_method = FOLLOW_UP_MAPPING.get(ind_name, "شهري")
     
-    # --- حساب خط الأساس التراكمي ---
+    # حساب خط الأساس التراكمي
     mask = (current_data['اسم المؤشر'] == ind_name) & (current_data['مالك المؤشر'] == selected_owner)
     if mask.any():
         original_base = current_data.loc[mask, 'خط الأساس 2024'].iloc[0]
@@ -167,17 +166,24 @@ with tab1:
     st.info(f"طريقة المتابعة: **{f_method}** | الفترة: **{current_month_name}**")
 
     with st.form("add_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            # خانة مظللة للقراءة فقط
+        col_right, col_left = st.columns(2)
+        
+        with col_right:
             st.number_input("خط الأساس التراكمي (يُحسب آلياً)", value=float(calculated_base), disabled=True)
-        with c2:
             act_val = st.number_input(f"{dynamic_column_name}", value=0.0)
-            st.markdown("🔗 ** ارفع الملف علىFileOrbis ثم انسخ الرابط **")
-            st.link_button("للرفع 📂", "https://drive.google.com/")
-            docs_input = st.text_input("الوثائق الداعمة")
 
-        if st.form_submit_button("حفظ في السحابة ✅"):
+        with col_left:
+            # تنظيم قسم الوثائق بشكل مرتب
+            st.write("📂 **قسم الوثائق الداعمة**")
+            st.caption("ارفع الملف على Drive ثم انسخ الرابط هنا")
+            st.link_button("افتح Google Drive للرفع 🚀", "https://drive.google.com/", use_container_width=True)
+            docs_input = st.text_input(
+                "رابط الوثيقة", 
+                placeholder="https://drive.google.com/...",
+                help="تأكد من جعل صلاحية الرابط 'Anyone with the link' لضمان فتحه لدى الإدارة."
+            )
+
+        if st.form_submit_button("حفظ في السحابة ✅", use_container_width=True):
             with st.spinner('جاري معالجة البيانات...'):
                 current_df = get_data()
                 new_data = {
