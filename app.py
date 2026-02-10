@@ -94,6 +94,7 @@ with tab1:
                 st.number_input("📈 خط الأساس التراكمي", value=float(calculated_base), disabled=True)
                 act_val = st.number_input(f"🔢 {dynamic_column_name}", value=0.0)
             with f_col2:
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.link_button("📂 افتح Google Drive للرفع", "https://drive.google.com/", use_container_width=True)
                 docs_input = st.text_input("🔗 رابط الوثيقة الداعمة", placeholder="ألصق الرابط هنا...")
             
@@ -125,8 +126,8 @@ with tab1:
         st.markdown("---")
         # عرض قائمة المؤشرات مع صح أو خطأ (بدون كولابس) كما طلبت في الرسمة
         for ind in required_indicators:
-            if ind in done_list: st.write(f"✅ {ind}")
-            else: st.write(f"❌ {ind}")
+            if ind in done_list: st.write(f"{ind} ✅-")
+            else: st.write(f"{ind} ❌-")
 
     st.divider()
     st.subheader("📋 ملخص البيانات التاريخية")
