@@ -165,35 +165,37 @@ with tab1:
 
     st.info(f"طريقة المتابعة: **{f_method}** | الفترة: **{current_month_name}**")
 
-# --- نموذج الإدخال (الفورم) المنسق باحترافية ---
+# --- نموذج الإدخال (الفورم) بتنسيق الصفوف المتوازية ---
     with st.form("add_form", clear_on_submit=True):
-        # إنشاء عمودين متساويين لضمان التناسق
-        col_right, col_left = st.columns(2)
         
-        with col_right:
-            st.markdown("### 🔢 البيانات الرقمية")
-            # حقل خط الأساس (مظلل)
-            st.number_input("خط الأساس التراكمي (يُحسب آلياً)", value=float(calculated_base), disabled=True)
-            # حقل القيمة الفعلية
-            act_val = st.number_input(f"{dynamic_column_name}", value=0.0)
+        # الصف الأول: العناوين
+        header_right, header_left = st.columns(2)
+        header_right.markdown("### 🔢 قسم البيانات الرقمية")
+        header_left.markdown("### 📂 قسم الوثائق")
+        
+        st.divider()
 
-        with col_left:
-            st.markdown("### 📂 قسم الوثائق")
-            # وضعنا التعليمات والزر في حاوية واحدة لترتيبها
-            st.info("ارفع ملفك على Drive ثم انسخ الرابط وضعه في الأسفل")
-            
-            # الزر سيظهر بمحاذاة الحقول الرقمية
-            st.link_button("افتح Google Drive للرفع 🚀", "https://drive.google.com/", use_container_width=True)
-            
-            # حقل الرابط
+        # الصف الثاني: خط الأساس مقابل زر الرفع
+        row1_right, row1_left = st.columns(2)
+        with row1_right:
+            st.number_input("خط الأساس التراكمي (يُحسب آلياً)", value=float(calculated_base), disabled=True)
+        with row1_left:
+            # نضع زر الرفع هنا ليكون موازياً لخط الأساس
+            st.link_button("افتح FileOrbis للرفع 🚀", "https://cdp.moc.gov.sa/portal/r/l/3f72f52a8b2348d9b6c8b687bb6e4b80", use_container_width=True)
+
+        # الصف الثالث: القيمة الفعلية مقابل رابط الوثيقة
+        row2_right, row2_left = st.columns(2)
+        with row2_right:
+            act_val = st.number_input(f"{dynamic_column_name}", value=0.0)
+        with row2_left:
             docs_input = st.text_input(
                 "رابط الوثيقة الداعمة", 
-                placeholder="https://drive.google.com/...",
+                placeholder="https://cdp.moc.gov.sa/...",
                 help="تأكد من صلاحيات الرابط (Anyone with the link)"
             )
 
-        # زر الحفظ في الأسفل بمنتصف النموذج وبشكل عريض
-        st.divider()
+        # زر الحفظ النهائي
+        st.write("") # مساحة بسيطة
         if st.form_submit_button("حفظ البيانات في السحابة ✅", use_container_width=True):
             with st.spinner('جاري معالجة البيانات...'):
                 current_df = get_data()
