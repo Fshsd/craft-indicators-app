@@ -113,54 +113,43 @@ with tab1:
     st.title("📊 نظام إدارة مؤشرات قطاع الحرف")
     st.subheader(f"إدخال بيانات شهر: {current_month_name} {current_year}")
     
-    # الخطوة 1: يختار المستخدم اسمه أولاً
+    # 1. اختيار المالك والمؤشر (يجب أن يكون خارج الفورم للتحديث اللحظي)
     selected_owner = st.selectbox("اختر اسمك (مالك المؤشر)", OWNERS)
-    # --- نظام التذكير الذكي ---
-current_data = get_data()
-
-# 1. حساب عدد المؤشرات المطلوبة من الشخص
-required_count = len(OWNER_INDICATORS[selected_owner])
-
-# 2. حساب عدد المؤشرات التي قام بتعبئتها لهذا الشهر تحديداً
-if dynamic_column_name in current_data.columns:
-    # نقوم بفلترة البيانات لمالك المؤشر الحالي والتي تحتوي على قيمة (ليست فارغة وليست صفر)
-    completed_count = current_data[
-        (current_data['مالك المؤشر'] == selected_owner) & 
-        (current_data[dynamic_column_name].notna()) & 
-        (current_data[dynamic_column_name] != 0)
-    ].shape[0]
-else:
-    completed_count = 0
-
-# 3. عرض التذكير بناءً على الحالة
-st.markdown(f"### 🔔 حالة الإكمال لشهر {current_month_name}")
-
-if completed_count == 0:
-    st.warning(f"⚠️ يا {selected_owner.split()[0]}، لم تقم بإدخال أي بيانات لهذا الشهر حتى الآن. مطلوب منك {required_count} مؤشرات.")
-elif completed_count < required_count:
-    remaining = required_count - completed_count
-    st.info(f"⚡ إنجاز جيد! لقد أكملت {completed_count} من أصل {required_count}. متبقي لك {remaining} مؤشرات فقط.")
-    # عرض أسماء المؤشرات المتبقية
-    all_assigned = set(OWNER_INDICATORS[selected_owner])
+    
+    # --- نظام التذكير الذكي (عرض فقط ولا يعطل الفورم) ---
+    current_data = get_data()
+    required_count = len(OWNER_INDICATORS[selected_owner])
+    
+    # حساب الإكمال للشهر الحالي
     if dynamic_column_name in current_data.columns:
-        done_list = set(current_data[(current_data['مالك المؤشر'] == selected_owner) & (current_data[dynamic_column_name].notna())]['اسم المؤشر'])
+        done_list = current_data[
+            (current_data['مالك المؤشر'] == selected_owner) & 
+            (current_data[dynamic_column_name].notna()) & 
+            (current_data[dynamic_column_name] != 0)
+        ]['اسم المؤشر'].tolist()
+        completed_count = len(done_list)
     else:
-        done_list = set()
-    
-    missing = all_assigned - done_list
-    with st.expander("رؤية المؤشرات المتبقية عليك"):
-        for m in missing:
-            st.write(f"- {m}")
-else:
-    st.success(f"✅ كفيت ووفيت يا {selected_owner.split()[0]}! لقد أكملت جميع المؤشرات الـ {required_count} المطلوبة منك.")
-    
-    # الخطوة 2: تظهر المؤشرات الخاصة به فقط
+        done_list = []
+        completed_count = 0
+
+    st.markdown(f"### 🔔 حالة الإكمال لشهر {current_month_name}")
+    if completed_count == 0:
+        st.warning(f"⚠️ يا {selected_owner.split()[0]}، لم يتم إدخال أي بيانات لهذا الشهر. مطلوب منك {required_count} مؤشرات.")
+    elif completed_count < required_count:
+        st.info(f"⚡ أكملت {completed_count} من {required_count}. متبقي لك {required_count - completed_count}.")
+    else:
+        st.success(f"✅ كفيت ووفيت! أتممت جميع المهام المطلوبة.")
+
+    st.divider()
+
+    # 2. الفلترة وإظهار الفورم (يبقى ظاهراً دائماً)
     available_indicators = OWNER_INDICATORS[selected_owner]
     ind_name = st.selectbox("اسم المؤشر المسؤول عنه", available_indicators)
     
     f_method = FOLLOW_UP_MAPPING.get(ind_name, "شهري")
     st.info(f"طريقة المتابعة: **{f_method}** | الفترة: **{current_month_name}**")
 
+    # الفورم الأساسي للإدخال
     with st.form("add_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
@@ -170,30 +159,24 @@ else:
             docs_input = st.text_input("الوثائق الداعمة")
 
         if st.form_submit_button("حفظ في السحابة ✅"):
-            with st.spinner('جاري معالجة البيانات...'):
+            with st.spinner('جاري الحفظ...'):
                 current_df = get_data()
-                
                 new_data = {
-                    "اسم المؤشر": ind_name, 
-                    "مالك المؤشر": selected_owner,
-                    "خط الأساس 2024": base_24, 
-                    "الوثائق الداعمة": docs_input, 
-                    "طريقة المتابعة": f_method,
-                    dynamic_column_name: act_val
+                    "اسم المؤشر": ind_name, "مالك المؤشر": selected_owner,
+                    "خط الأساس 2024": base_24, "الوثائق الداعمة": docs_input, 
+                    "طريقة المتابعة": f_method, dynamic_column_name: act_val
                 }
                 
                 mask = (current_df['اسم المؤشر'] == ind_name) & (current_df['مالك المؤشر'] == selected_owner)
-                
                 if mask.any():
                     current_df.loc[mask, dynamic_column_name] = act_val
                     updated_df = current_df
                 else:
-                    new_row = pd.DataFrame([new_data])
-                    updated_df = pd.concat([current_df, new_row], ignore_index=True)
+                    updated_df = pd.concat([current_df, pd.DataFrame([new_data])], ignore_index=True)
                 
                 conn.update(data=updated_df)
                 st.cache_data.clear()
-            st.success(f"تم الحفظ بنجاح يا {selected_owner.split()[0]}!")
+            st.success("تم الحفظ بنجاح!")
             st.rerun()
 
     st.divider()
