@@ -6,12 +6,13 @@ from datetime import datetime, timedelta
 # إعدادات الصفحة
 st.set_page_config(page_title="نظام إدارة مؤشرات الحرف", layout="wide")
 
+# إنشاء الاتصال بجوجل شيت
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def get_data():
     return conn.read(ttl=2)
 
-# --- إعدادات الوقت الديناميكية ---
+# --- إعدادات الوقت الديناميكية (الشهر الحالي - 20 يوم) ---
 arabic_months = {
     1: "يناير", 2: "فبراير", 3: "مارس", 4: "أبريل", 5: "مايو", 6: "يونيو",
     7: "يوليو", 8: "أغسطس", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
@@ -78,15 +79,13 @@ OWNER_INDICATORS = {
     ]
 }
 
-# قائمة المالكين المستخرجة من القاموس
 OWNERS = list(OWNER_INDICATORS.keys())
-
-# ربط طريقة المتابعة (بناءً على طلبك السابق)
-# ملاحظة: يتم الربط ديناميكياً لتسهيل الكود
 ALL_IND_LIST = [ind for sublist in OWNER_INDICATORS.values() for ind in sublist]
 FOLLOW_UP_MAPPING = {ind: ("تراكمي" if "تراكمي" in ind or "عدد الرخص" in ind else "شهري") for ind in ALL_IND_LIST}
 
-# --- نظام الحماية ---
+# ===============================
+# نظام الحماية (السيناريو الأول)
+# ===============================
 def check_password():
     if "user_role" not in st.session_state: st.session_state["user_role"] = None
     def password_entered():
@@ -98,29 +97,34 @@ def check_password():
         else: st.session_state["password_correct"] = False
         if "password" in st.session_state: del st.session_state["password"]
     if not st.session_state.get("password_correct"):
-        st.text_input("أدخل الرمز السري للدخول", type="password", on_change=password_entered, key="password")
+        st.text_input("أدخل الرمز السري للدخول إلى النظام", type="password", on_change=password_entered, key="password")
+        if st.session_state.get("password_correct") == False: st.error("😕 الرمز غير صحيح")
         return False
     return True
 
 if not check_password(): st.stop()
 
-# --- إدارة التبويبات ---
+# ===============================
+# إدارة الواجهة بناءً على الصلاحية
+# ===============================
 role = st.session_state["user_role"]
-if role == "admin": tab1, tab2 = st.tabs(["➕ إضافة بيانات", "📝 عرض وتعديل وإدارة"])
-else: tab1, tab2 = st.container(), None
+if role == "admin":
+    tab1, tab2 = st.tabs(["➕ إضافة بيانات", "📝 عرض وتعديل وإدارة"])
+else:
+    tab1 = st.container()
+    tab2 = None
 
 with tab1:
     st.title("📊 نظام إدارة مؤشرات قطاع الحرف")
     st.subheader(f"إدخال بيانات شهر: {current_month_name} {current_year}")
     
-    # 1. اختيار المالك والمؤشر (يجب أن يكون خارج الفورم للتحديث اللحظي)
     selected_owner = st.selectbox("اختر اسمك (مالك المؤشر)", OWNERS)
     
-    # --- نظام التذكير الذكي (عرض فقط ولا يعطل الفورم) ---
+    # --- نظام التذكير الذكي والـ Expander ---
     current_data = get_data()
-    required_count = len(OWNER_INDICATORS[selected_owner])
+    required_indicators = OWNER_INDICATORS[selected_owner]
+    required_count = len(required_indicators)
     
-    # حساب الإكمال للشهر الحالي
     if dynamic_column_name in current_data.columns:
         done_list = current_data[
             (current_data['مالك المؤشر'] == selected_owner) & 
@@ -129,27 +133,28 @@ with tab1:
         ]['اسم المؤشر'].tolist()
         completed_count = len(done_list)
     else:
-        done_list = []
-        completed_count = 0
+        done_list, completed_count = [], 0
 
     st.markdown(f"### 🔔 حالة الإكمال لشهر {current_month_name}")
     if completed_count == 0:
         st.warning(f"⚠️ يا {selected_owner.split()[0]}، لم يتم إدخال أي بيانات لهذا الشهر. مطلوب منك {required_count} مؤشرات.")
     elif completed_count < required_count:
-        st.info(f"⚡ أكملت {completed_count} من {required_count}. متبقي لك {required_count - completed_count}.")
+        st.info(f"⚡ أكملت {completed_count} من {required_count}. متبقي لك {required_count - completed_count} مؤشرات.")
+        missing_indicators = [ind for ind in required_indicators if ind not in done_list]
+        with st.expander("🔍 اضغط هنا لمعرفة المؤشرات المتبقية عليك"):
+            for i, m_ind in enumerate(missing_indicators, 1):
+                st.write(f"{i}. {m_ind}")
     else:
-        st.success(f"✅ كفيت ووفيت! أتممت جميع المهام المطلوبة.")
+        st.success(f"✅ كفيت ووفيت يا {selected_owner.split()[0]}! أتممت جميع مهامك.")
 
     st.divider()
 
-    # 2. الفلترة وإظهار الفورم (يبقى ظاهراً دائماً)
+    # --- نموذج الإدخال (الفورم) ---
     available_indicators = OWNER_INDICATORS[selected_owner]
     ind_name = st.selectbox("اسم المؤشر المسؤول عنه", available_indicators)
-    
     f_method = FOLLOW_UP_MAPPING.get(ind_name, "شهري")
     st.info(f"طريقة المتابعة: **{f_method}** | الفترة: **{current_month_name}**")
 
-    # الفورم الأساسي للإدخال
     with st.form("add_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
@@ -159,7 +164,7 @@ with tab1:
             docs_input = st.text_input("الوثائق الداعمة")
 
         if st.form_submit_button("حفظ في السحابة ✅"):
-            with st.spinner('جاري الحفظ...'):
+            with st.spinner('جاري معالجة البيانات...'):
                 current_df = get_data()
                 new_data = {
                     "اسم المؤشر": ind_name, "مالك المؤشر": selected_owner,
@@ -179,17 +184,19 @@ with tab1:
             st.success("تم الحفظ بنجاح!")
             st.rerun()
 
-    st.divider()
-    st.subheader("📋 ملخص الإدخالات")
+    st.markdown("---")
+    st.subheader("📋 ملخص البيانات التاريخية")
     st.dataframe(get_data(), use_container_width=True)
 
+# --- محتوى تبويب الإدارة (للمدير فقط) ---
 if role == "admin" and tab2:
     with tab2:
         st.subheader("⚙️ لوحة التحكم الإدارية")
         data_to_edit = get_data()
         edited_df = st.data_editor(data_to_edit, num_rows="dynamic", use_container_width=True, key="editor_tab2")
         if st.button("💾 حفظ التعديلات النهائية"):
-            conn.update(data=edited_df)
-            st.cache_data.clear()
-            st.success("تم تحديث قاعدة البيانات بنجاح!")
+            with st.spinner('جاري تحديث السحابة...'):
+                conn.update(data=edited_df)
+                st.cache_data.clear()
+            st.success("تم تحديث قاعدة البيانات بنجاح! 🚀")
             st.rerun()
