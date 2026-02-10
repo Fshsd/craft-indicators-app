@@ -173,6 +173,8 @@ with tab1:
             st.number_input("خط الأساس التراكمي (يُحسب آلياً)", value=float(calculated_base), disabled=True)
         with c2:
             act_val = st.number_input(f"{dynamic_column_name}", value=0.0)
+            st.markdown("🔗 ** ارفع الملف علىFileOrbis ثم انسخ الرابط **")
+            st.link_button("للرفع 📂", "https://drive.google.com/")
             docs_input = st.text_input("الوثائق الداعمة")
 
         if st.form_submit_button("حفظ في السحابة ✅"):
