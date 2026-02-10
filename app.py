@@ -119,7 +119,7 @@ with tab1:
     ind_name = st.selectbox("اسم المؤشر", INDICATORS)
     f_method = FOLLOW_UP_MAPPING.get(ind_name, "غير محدد")
     st.info(f"طريقة المتابعة لهذا المؤشر: **{f_method}**")
-    st.info("الشهر : ", month_name)
+    st.info(f"الشهر : {month_name}")
 
     with st.form("add_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
