@@ -107,6 +107,7 @@ if not check_password(): st.stop()
 # ===============================
 # إدارة الواجهة بناءً على الصلاحية
 # ===============================
+st.title("📊 نظام إدارة مؤشرات قطاع الحرف")
 role = st.session_state["user_role"]
 if role == "admin":
     tab1, tab2 = st.tabs(["➕ إضافة بيانات", "📝 عرض وتعديل وإدارة"])
@@ -115,7 +116,6 @@ else:
     tab2 = None
 
 with tab1:
-    st.title("📊 نظام إدارة مؤشرات قطاع الحرف")
     st.subheader(f"إدخال بيانات شهر: {current_month_name} {current_year}")
     
     selected_owner = st.selectbox("اختر اسمك (مالك المؤشر)", OWNERS)
@@ -126,10 +126,10 @@ with tab1:
     required_count = len(required_indicators)
     
     if dynamic_column_name in current_data.columns:
+        # نعتمد على وجود قيمة (حتى لو صفر) لاعتبار المؤشر مكتملاً
         done_list = current_data[
             (current_data['مالك المؤشر'] == selected_owner) & 
-            (current_data[dynamic_column_name].notna()) & 
-            (current_data[dynamic_column_name] != 0)
+            (current_data[dynamic_column_name].notna())
         ]['اسم المؤشر'].tolist()
         completed_count = len(done_list)
     else:
@@ -153,12 +153,24 @@ with tab1:
     available_indicators = OWNER_INDICATORS[selected_owner]
     ind_name = st.selectbox("اسم المؤشر المسؤول عنه", available_indicators)
     f_method = FOLLOW_UP_MAPPING.get(ind_name, "شهري")
+    
+    # --- حساب خط الأساس التراكمي ---
+    mask = (current_data['اسم المؤشر'] == ind_name) & (current_data['مالك المؤشر'] == selected_owner)
+    if mask.any():
+        original_base = current_data.loc[mask, 'خط الأساس 2024'].iloc[0]
+        actual_columns = [col for col in current_data.columns if "القيمة الفعلية" in col]
+        previous_actuals_sum = current_data.loc[mask, actual_columns].sum(axis=1).iloc[0]
+        calculated_base = original_base + previous_actuals_sum
+    else:
+        calculated_base = 0.0
+
     st.info(f"طريقة المتابعة: **{f_method}** | الفترة: **{current_month_name}**")
 
     with st.form("add_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
-            base_24 = st.number_input("خط الأساس 2024", value=0.0)
+            # خانة مظللة للقراءة فقط
+            st.number_input("خط الأساس التراكمي (يُحسب آلياً)", value=float(calculated_base), disabled=True)
         with c2:
             act_val = st.number_input(f"{dynamic_column_name}", value=0.0)
             docs_input = st.text_input("الوثائق الداعمة")
@@ -168,11 +180,11 @@ with tab1:
                 current_df = get_data()
                 new_data = {
                     "اسم المؤشر": ind_name, "مالك المؤشر": selected_owner,
-                    "خط الأساس 2024": base_24, "الوثائق الداعمة": docs_input, 
+                    "خط الأساس 2024": calculated_base if not mask.any() else original_base, 
+                    "الوثائق الداعمة": docs_input, 
                     "طريقة المتابعة": f_method, dynamic_column_name: act_val
                 }
                 
-                mask = (current_df['اسم المؤشر'] == ind_name) & (current_df['مالك المؤشر'] == selected_owner)
                 if mask.any():
                     current_df.loc[mask, dynamic_column_name] = act_val
                     updated_df = current_df
