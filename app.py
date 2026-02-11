@@ -4,21 +4,38 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import datetime, timedelta
 
 # إعدادات الصفحة
-st.set_page_config(page_title="نظام إدارة مؤشرات الحرف", layout="wide")
+st.set_config = st.set_page_config(page_title="نظام إدارة مؤشرات الحرف", layout="wide")
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def get_data():
     return conn.read(ttl=2)
 
-# --- إعدادات الوقت الديناميكية ---
+# ===============================
+# ⚙️ نظام إدارة التاريخ (الاعدادات)
+# ===============================
+if "manual_date" not in st.session_state:
+    st.session_state["manual_date"] = datetime.today()
+if "use_auto_date" not in st.session_state:
+    st.session_state["use_auto_date"] = True
+if "days_offset" not in st.session_state:
+    st.session_state["days_offset"] = 20
+
+# تحديد التاريخ الفعلي المستخدم في النظام
+if st.session_state["use_auto_date"]:
+    # التاريخ التلقائي: اليوم ناقص عدد الأيام المحدد
+    calc_date = datetime.today() - timedelta(days=st.session_state["days_offset"])
+else:
+    # التاريخ اليدوي المختار من الإعدادات
+    calc_date = st.session_state["manual_date"]
+
 arabic_months = {
     1: "يناير", 2: "فبراير", 3: "مارس", 4: "أبريل", 5: "مايو", 6: "يونيو",
     7: "يوليو", 8: "أغسطس", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
 }
-target_date = datetime.today() - timedelta(days=20)
-current_month_name = arabic_months[target_date.month]
-current_year = target_date.year
+
+current_month_name = arabic_months[calc_date.month]
+current_year = calc_date.year
 dynamic_column_name = f"القيمة الفعلية {current_month_name} {current_year}"
 
 # --- هيكلة عهدة المؤشرات ---
@@ -54,16 +71,18 @@ def check_password():
 
 if not check_password(): st.stop()
 
-# --- التصميم الجديد (توزيع الأعمدة) ---
+# --- توزيع التبويبات ---
 role = st.session_state["user_role"]
 if role == "admin": tab1, tab2 = st.tabs(["➕ إضافة بيانات", "📝 عرض وتعديل وإدارة"])
 else: tab1, tab2 = st.container(), None
 
+# ===============================
+# ➕ صفحة إضافة البيانات
+# ===============================
 with tab1:
     st.title("📊 نظام إدارة مؤشرات قطاع الحرف")
     st.subheader(f"📅 إدخال بيانات شهر: {current_month_name} {current_year}")
     
-    # 1. المداخل الأساسية فوق التقسيم
     selected_owner = st.selectbox("اختر اسمك (مالك المؤشر)", OWNERS)
     available_indicators = OWNER_INDICATORS[selected_owner]
     ind_name = st.selectbox("اسم المؤشر المسؤول عنه", available_indicators)
@@ -73,12 +92,10 @@ with tab1:
     
     st.divider()
 
-    # 2. تقسيم الصفحة إلى قسمين (الهامش 1 : الأساس 3)
     col_main, col_sidebar = st.columns([3, 2])
 
     with col_main:
         st.markdown("### 📝 نموذج الإدخال")
-        # حساب خط الأساس
         current_data = get_data()
         mask = (current_data['اسم المؤشر'] == ind_name) & (current_data['مالك المؤشر'] == selected_owner)
         if mask.any():
@@ -96,7 +113,6 @@ with tab1:
             with f_col2:
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.link_button("📂 افتح FileOrbis للرفع", "https://cdp.moc.gov.sa/portal/r/l/3f72f52a8b2348d9b6c8b687bb6e4b80", use_container_width=True)
-
                 docs_input = st.text_input("🔗 رابط الوثيقة الداعمة", placeholder="ألصق الرابط هنا...")
             
             if st.form_submit_button("حفظ البيانات في السحابة ✅", use_container_width=True):
@@ -111,7 +127,6 @@ with tab1:
 
     with col_sidebar:
         st.markdown(f"### 🔔 التنبيهات")
-        # منطق حالة الإكمال
         if dynamic_column_name in current_data.columns:
             done_list = current_data[(current_data['مالك المؤشر'] == selected_owner) & (current_data[dynamic_column_name].notna())]['اسم المؤشر'].tolist()
         else: done_list = []
@@ -125,21 +140,44 @@ with tab1:
         else: st.success(f"✅ كفيت ووفيت!")
 
         st.markdown("---")
-        # عرض قائمة المؤشرات مع صح أو خطأ (بدون كولابس) كما طلبت في الرسمة
         for ind in required_indicators:
             if ind in done_list: st.write(f"{ind} ✅-")
             else: st.write(f"{ind} ❌-")
 
-    st.divider()
-    st.subheader("📋 ملخص البيانات التاريخية")
-    st.dataframe(get_data(), use_container_width=True)
-
+# ===============================
+# ⚙️ صفحة الإدارة والاعدادات
+# ===============================
 if role == "admin" and tab2:
     with tab2:
-        st.subheader("⚙️ الإدارة")
+        col_title, col_settings = st.columns([5, 1])
+        with col_title:
+            st.subheader("⚙️ إدارة البيانات")
+        
+        # --- نافذة الاعدادات المصغرة (Popover) ---
+        with col_settings:
+            with st.popover("🛠️ الاعدادات"):
+                st.markdown("### التحكم في التاريخ")
+                
+                # الخيار الأول: اختيار يدوي
+                new_date = st.date_input("حدد اليوم والشهر والسنة", value=st.session_state["manual_date"])
+                
+                st.divider()
+                
+                # الخيار الثاني: تفعيل التاريخ التلقائي مع الأوفست
+                auto_toggle = st.checkbox("اعتماد تاريخ اليوم تلقائياً", value=st.session_state["use_auto_date"])
+                offset_val = st.number_input("عدد الأيام المخصومة من اليوم", value=st.session_state["days_offset"], min_value=0)
+                
+                if st.button("💾 حفظ الإعدادات", use_container_width=True):
+                    st.session_state["manual_date"] = datetime.combine(new_date, datetime.min.time())
+                    st.session_state["use_auto_date"] = auto_toggle
+                    st.session_state["days_offset"] = offset_val
+                    st.success("تم الحفظ وتحديث النظام!")
+                    st.rerun()
+
+        # محرر البيانات الأصلي
         data_to_edit = get_data()
         edited_df = st.data_editor(data_to_edit, num_rows="dynamic", use_container_width=True)
-        if st.button("💾 حفظ"):
+        if st.button("💾 حفظ تعديلات الجدول"):
             conn.update(data=edited_df)
             st.cache_data.clear()
             st.rerun()
