@@ -144,6 +144,10 @@ with tab1:
             if ind in done_list: st.write(f"{ind} ✅-")
             else: st.write(f"{ind} ❌-")
 
+    st.divider()
+    st.subheader("📋 ملخص البيانات التاريخية")
+    st.dataframe(get_data(), use_container_width=True)
+
 # ===============================
 # ⚙️ صفحة الإدارة والاعدادات
 # ===============================
