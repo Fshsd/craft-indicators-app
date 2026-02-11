@@ -16,7 +16,8 @@ arabic_months = {
     1: "يناير", 2: "فبراير", 3: "مارس", 4: "أبريل", 5: "مايو", 6: "يونيو",
     7: "يوليو", 8: "أغسطس", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
 }
-target_date = datetime.today() - timedelta(days=20)
+Days_to_subtract = 20
+target_date = datetime.today() - timedelta(days=Days_to_subtract)
 current_month_name = arabic_months[target_date.month]
 current_year = target_date.year
 dynamic_column_name = f"القيمة الفعلية {current_month_name} {current_year}"
@@ -137,6 +138,7 @@ with tab1:
 if role == "admin" and tab2:
     with tab2:
         st.subheader("⚙️ الإدارة")
+        st.text_input("عدد الايام التي سيتم طرحها في صفحة الإدخال (تأثير رجعي)", value=Days_to_subtract, key="admin_days_input")
         data_to_edit = get_data()
         edited_df = st.data_editor(data_to_edit, num_rows="dynamic", use_container_width=True)
         if st.button("💾 حفظ"):
